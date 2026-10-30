@@ -371,6 +371,7 @@ body.remote > :not(#remote){display:none!important}
       <button type="button" id="openDrawer">名單 / 設定</button>
       <button type="button" id="quickTask">＋ 臨時加任務</button>
       <button type="button" id="soundBtn" aria-pressed="true">音效 開</button>
+      <button type="button" id="volBtn">音量：大</button>
       <button type="button" id="fsBtn">全螢幕</button>
       <button type="button" id="menuDock">鏡頭導播台</button>
       <div class="mstat" id="menuRemote">手機：CAM 1 ○　CAM 2 ○</div>
@@ -1262,7 +1263,10 @@ function indexAt(rot,n){return Math.round(mod(-rot)/(TAU/n))%n}
 
 /* ---------- audio ---------- */
 let ac=null;
-function beep(f,d,type="square",vol=.05)｛vol=Math.min(1,vol*12);if(!sound)return;try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(vol,ac.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
+/* 音量：每一級是原本音效的倍數 */
+const VOL=[4,8,14,22],VOLNAME=["小","中","大","超大"];
+let volLv=+store.get("pd_vol","2");if(!(volLv>=0&&volLv<VOL.length))volLv=2;
+function beep(f,d,type="square",vol=.05){if(!sound)return;vol=Math.min(1,vol*VOL[volLv]);try{ac=ac||new(window.AudioContext||window.webkitAudioContext)();if(ac.state==="suspended")ac.resume();const o=ac.createOscillator(),g=ac.createGain();o.type=type;o.frequency.value=f;g.gain.setValueAtTime(vol,ac.currentTime);g.gain.exponentialRampToValueAtTime(.0001,ac.currentTime+d);o.connect(g).connect(ac.destination);o.start();o.stop(ac.currentTime+d)}catch(e){}}
 const fanfare=()=>[523,659,784,1047].forEach((f,i)=>setTimeout(()=>beep(f,.25,"triangle",.08),i*110));
 function rnd(n){const a=new Uint32Array(1);crypto.getRandomValues(a);return a[0]%n}
 
@@ -1686,6 +1690,9 @@ $("#closeDrawer").onclick=()=>openD(false);$("#scrim").onclick=()=>openD(false);
 
 function setSound(s){sound=s;store.set("pd_sound",s?"1":"0");$("#soundBtn").textContent="音效 "+(s?"開":"關");$("#soundBtn").setAttribute("aria-pressed",s)}
 $("#soundBtn").onclick=()=>setSound(!sound);
+function showVol(){$("#volBtn").textContent="音量："+VOLNAME[volLv]+"（點一下切換）"}
+$("#volBtn").onclick=e=>{e.stopPropagation();volLv=(volLv+1)%VOL.length;store.set("pd_vol",volLv);showVol();if(!sound)setSound(true);fanfare()};
+showVol();
 $("#fsBtn").onclick=()=>{try{document.fullscreenElement?document.exitFullscreen():document.documentElement.requestFullscreen().catch(()=>{})}catch(e){}};
 $("#spinBtn").onclick=spin;
 $("#noRepeat").onchange=()=>{store.set("pd_norep",$("#noRepeat").checked?"1":"0");refresh()};
